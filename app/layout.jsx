@@ -8,6 +8,11 @@ export const metadata = {
   description: "Indique tes disponibilités et trouve le meilleur jour pour se voir."
 };
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1
+};
+
 export default function RootLayout({ children }) {
   return (
     <html lang="fr">
