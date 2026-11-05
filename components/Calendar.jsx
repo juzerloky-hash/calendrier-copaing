@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
-import { STATUS, colorOf, fmtLong, iso, newUid } from "../lib/utils";
+import { STATUS, NAMES, colorOf, fmtLong, iso, uidForName } from "../lib/utils";
 import DayModal from "./DayModal";
 import NameModal from "./NameModal";
 
@@ -28,7 +28,8 @@ export default function Calendar() {
     setGroup(g.toLowerCase().replace(/[^a-z0-9_-]/g, "").slice(0, 40) || "copains");
     let saved = null;
     try { saved = JSON.parse(localStorage.getItem("cc-me")); } catch {}
-    const m = saved?.uid ? saved : { uid: newUid(), name: "" };
+    const name = NAMES.includes(saved?.name) ? saved.name : "";
+    const m = { uid: name ? uidForName(name) : "", name };
     localStorage.setItem("cc-me", JSON.stringify(m));
     setMe(m);
     setReady(true);
@@ -37,7 +38,7 @@ export default function Calendar() {
   const load = useCallback(async () => {
     if (!supabase) return;
     const { data, error } = await supabase.from("dispos").select("*").eq("groupe", group);
-    if (error) setError(error.message);
+    if (error) setError(explainError(error.message));
     else { setError(""); setRows(data); }
   }, [group]);
 
@@ -78,14 +79,12 @@ export default function Calendar() {
 
   // --- Actions ---
   const saveName = (name) => {
-    const next = { ...me, name };
+    if (!NAMES.includes(name)) return;
+    const next = { uid: uidForName(name), name };
     localStorage.setItem("cc-me", JSON.stringify(next));
     setMe(next);
     const then = nameAsk?.then;
     setNameAsk(null);
-    if (rows.some((r) => r.user_id === me.uid) && supabase) {
-      supabase.from("dispos").update({ name }).eq("groupe", group).eq("user_id", me.uid).then(load);
-    }
     if (then) then(next);
   };
 
@@ -98,13 +97,13 @@ export default function Calendar() {
       note: n ? n.slice(0, 120) : null, updated_at: new Date().toISOString()
     }));
     const { error } = await supabase.from("dispos").upsert(list, { onConflict: "groupe,date,user_id" });
-    if (error) setError(error.message);
+    if (error) setError(explainError(error.message));
     await load();
   };
 
   const clear = async (dates) => {
     const { error } = await supabase.from("dispos").delete().eq("groupe", group).eq("user_id", me.uid).in("date", dates);
-    if (error) setError(error.message);
+    if (error) setError(explainError(error.message));
     await load();
   };
 
@@ -155,9 +154,23 @@ export default function Calendar() {
           </p>
         </div>
         <div className="top-actions">
-          <button className="chip" type="button" onClick={() => setNameAsk({ then: null })}>
-            {me.name ? `Moi : ${me.name} ✎` : "Choisir mon prénom"}
-          </button>
+          <label className="whoami">
+            <span>Moi</span>
+            <select
+              value={me.name}
+              aria-label="Choisir mon prénom"
+              onChange={(e) => saveName(e.target.value)}
+            >
+              <option value="" disabled>
+                Qui es-tu ?
+              </option>
+              {NAMES.map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+          </label>
           <button className="chip" type="button" onClick={changeGroup}>Changer de groupe</button>
         </div>
       </header>
@@ -258,7 +271,7 @@ export default function Calendar() {
           <span>{selected.size} jour{selected.size > 1 ? "s" : ""} choisi{selected.size > 1 ? "s" : ""}</span>
           <button type="button" onClick={() => bulk("ok")}>Dispo</button>
           <button type="button" onClick={() => bulk("maybe")}>Peut-être</button>
-          <button type="button" onClick={() => bulk("no")}>Pas dispo</button>
+          <button type="button" onClick={() => bulk("no")}>Indispo</button>
           <button type="button" onClick={() => bulk("clear")}>Effacer</button>
           <button type="button" className="ghost" onClick={() => bulk("cancel")}>Annuler</button>
         </div>
@@ -278,4 +291,11 @@ export default function Calendar() {
       {nameAsk && <NameModal initial={me.name} onSubmit={saveName} onClose={() => setNameAsk(null)} />}
     </>
   );
+}
+
+function explainError(message) {
+  if (/schema cache|could not find the table/i.test(message)) {
+    return `${message}. La table n’existe pas encore : dans Supabase, ouvre SQL Editor, colle le fichier supabase/schema.sql, puis clique sur Run.`;
+  }
+  return message;
 }

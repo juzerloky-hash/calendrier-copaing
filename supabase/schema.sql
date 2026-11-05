@@ -24,3 +24,6 @@ create policy "suppr"   on public.dispos for delete to anon using (true);
 
 -- Mises à jour en direct
 alter publication supabase_realtime add table public.dispos;
+
+-- Recharge le cache PostgREST (évite l’erreur « Could not find the table public.dispos »)
+notify pgrst, 'reload schema';

@@ -1,23 +1,40 @@
 "use client";
 import { useState } from "react";
 import Modal from "./Modal";
+import { NAMES } from "../lib/utils";
 
 export default function NameModal({ initial = "", onSubmit, onClose }) {
-  const [value, setValue] = useState(initial);
+  const [value, setValue] = useState(NAMES.includes(initial) ? initial : "");
   return (
-    <Modal onClose={onClose} label="Ton prénom">
+    <Modal onClose={onClose} label="Qui es-tu ?">
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          const v = value.trim();
-          if (v) onSubmit(v.slice(0, 30));
+          if (value) onSubmit(value);
         }}
       >
-        <h3>Ton prénom</h3>
-        <p className="muted">Il s’affichera à côté de tes dispos.</p>
-        <input value={value} onChange={(e) => setValue(e.target.value)} maxLength={30} required autoFocus placeholder="Julien" autoComplete="given-name" />
+        <h3>Qui es-tu ?</h3>
+        <p className="muted">Choisis ton prénom : il s’affichera à côté de tes dispos.</p>
+        <label className="field">
+          <span className="sr-only">Prénom</span>
+          <select
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            required
+            autoFocus
+          >
+            <option value="" disabled>
+              Choisir un prénom
+            </option>
+            {NAMES.map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
+        </label>
         <div className="row">
-          <button className="primary" type="submit">Valider</button>
+          <button className="primary" type="submit" disabled={!value}>Valider</button>
           <button className="ghost" type="button" onClick={onClose}>Annuler</button>
         </div>
       </form>
