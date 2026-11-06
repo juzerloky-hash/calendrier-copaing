@@ -91,6 +91,7 @@ export default function Calendar() {
   const requireName = (fn) => (me.name ? fn() : setNameAsk({ then: fn }));
 
   const save = async (dates, status, note) => {
+    if (!supabase) { setError("Supabase n’est pas configuré : ajoute NEXT_PUBLIC_SUPABASE_URL et NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY."); return; }
     const n = (note || "").trim();
     const list = dates.map((date) => ({
       groupe: group, date, user_id: me.uid, name: me.name, status,
@@ -102,6 +103,7 @@ export default function Calendar() {
   };
 
   const clear = async (dates) => {
+    if (!supabase) { setError("Supabase n’est pas configuré : ajoute NEXT_PUBLIC_SUPABASE_URL et NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY."); return; }
     const { error } = await supabase.from("dispos").delete().eq("groupe", group).eq("user_id", me.uid).in("date", dates);
     if (error) setError(explainError(error.message));
     await load();

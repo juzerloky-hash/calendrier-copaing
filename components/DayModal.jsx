@@ -35,13 +35,14 @@ export default function DayModal({ date, entries, me, onSave, onClear, onClose }
         ))}
       </ul>
 
-      <div className="seg" role="group" aria-label="Ma disponibilité">
-        {Object.entries(STATUS).map(([k, label]) => (
-          <button key={k} type="button" data-s={k} aria-pressed={status === k} onClick={() => setStatus(k)}>
-            {label}
-          </button>
-        ))}
-      </div>
+      <label className="field">
+        <span className="sr-only">Ma disponibilité</span>
+        <select value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Ma disponibilité">
+          {Object.entries(STATUS).map(([k, label]) => (
+            <option key={k} value={k}>{label}</option>
+          ))}
+        </select>
+      </label>
       <input value={note} onChange={(e) => setNote(e.target.value)} maxLength={120} placeholder="Précision (ex. après 18h)" />
 
       <div className="row">
